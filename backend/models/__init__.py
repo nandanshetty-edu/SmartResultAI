@@ -1,0 +1,5 @@
+from .user import User
+from .student import Student
+from .teacher import Teacher
+from .department import Department
+from .exam import Exam
