@@ -12,6 +12,8 @@ from routes.auth import auth_bp
 
 from flask_jwt_extended import JWTManager
 
+from routes.processing import processing_bp
+
 
 app = Flask(__name__)
 
@@ -24,6 +26,10 @@ CORS(app)
 db.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
+app.register_blueprint(
+    processing_bp,
+    url_prefix="/api/processing"
+)
 
 
 with app.app_context():
