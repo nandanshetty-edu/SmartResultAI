@@ -12,7 +12,7 @@ class Exam(db.Model):
 
     semester = db.Column(db.Integer, nullable=False)
 
-    section = db.Column(db.String(10), nullable=False)
+    section = db.Column(db.String(10), nullable=True)
 
     exam_type = db.Column(db.String(30), nullable=False)
 

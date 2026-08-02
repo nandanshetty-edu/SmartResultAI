@@ -14,6 +14,8 @@ from flask_jwt_extended import JWTManager
 
 from routes.processing import processing_bp
 
+from routes.exam import exam_bp
+
 
 app = Flask(__name__)
 
@@ -61,6 +63,10 @@ def health():
 
     })
 
+app.register_blueprint(
+    exam_bp,
+    url_prefix="/api/exams"
+)
 
 if __name__ == "__main__":
 
