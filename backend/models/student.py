@@ -8,10 +8,10 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     user_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
+    db.Integer,
+    db.ForeignKey("users.id"),
+    nullable=True
+)
 
     usn = db.Column(db.String(20), unique=True)
 
