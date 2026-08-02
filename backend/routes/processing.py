@@ -1,32 +1,52 @@
 from flask import Blueprint, request, jsonify
 
-processing_bp = Blueprint("processing", __name__)
+from services.processing_service import ProcessingService
+
+processing_bp = Blueprint(
+    "processing",
+    __name__
+)
 
 
-@processing_bp.route("/upload", methods=["POST"])
-def upload_files():
+@processing_bp.route(
+    "/upload",
+    methods=["POST"]
+)
+def upload():
 
     if "pdf" not in request.files:
+
         return jsonify({
+
             "success": False,
-            "message": "PDF not uploaded"
+
+            "message": "PDF missing"
+
         }), 400
 
     if "excel" not in request.files:
+
         return jsonify({
+
             "success": False,
-            "message": "Excel not uploaded"
+
+            "message": "Excel missing"
+
         }), 400
 
     pdf = request.files["pdf"]
+
     excel = request.files["excel"]
+
+    result = ProcessingService.upload(
+        pdf,
+        excel
+    )
 
     return jsonify({
 
         "success": True,
 
-        "pdf": pdf.filename,
-
-        "excel": excel.filename
+        "data": result
 
     })
