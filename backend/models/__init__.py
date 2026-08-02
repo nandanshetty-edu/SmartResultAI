@@ -4,3 +4,6 @@ from .teacher import Teacher
 from .department import Department
 from .exam import Exam
 from .processing_job import ProcessingJob
+from .result import Result
+from .mark import Mark
+from .subject import Subject

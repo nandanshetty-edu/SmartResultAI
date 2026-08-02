@@ -21,10 +21,10 @@ class Result(db.Model):
     )
 
     processing_job_id = db.Column(
-        db.Integer,
-        db.ForeignKey("processing_jobs.id"),
-        nullable=False
-    )
+    db.Integer,
+    db.ForeignKey("processing_jobs.id"),
+    nullable=True
+)
 
     sgpa = db.Column(db.Float, default=0.0)
 
