@@ -32,3 +32,14 @@ class ResultService:
         db.session.commit()
 
         return result
+
+    @staticmethod
+    def get_by_student_exam(
+        student_id,
+        exam_id
+    ):
+
+        return Result.query.filter_by(
+            student_id=student_id,
+            exam_id=exam_id
+        ).first()

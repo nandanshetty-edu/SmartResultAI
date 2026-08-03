@@ -1,9 +1,6 @@
 import camelot
 
-from services.parser.models import (
-    ParsedStudent,
-    ParsedSubject
-)
+from services.parser.models import ParsedStudent, ParsedSubject
 
 from services.parser.utils import normalize_subject
 
@@ -17,11 +14,7 @@ class CamelotParser:
         print("Reading PDF...")
         print("=" * 60)
 
-        tables = camelot.read_pdf(
-            pdf_path,
-            pages="all",
-            flavor="lattice"
-        )
+        tables = camelot.read_pdf(pdf_path, pages="all", flavor="lattice")
 
         print("Tables Found :", len(tables))
 
@@ -37,10 +30,7 @@ class CamelotParser:
             except IndexError:
                 continue
 
-            student = CamelotParser.parse_student(
-                header,
-                marks
-            )
+            student = CamelotParser.parse_student(header, marks)
 
             students.append(student)
 
@@ -53,11 +43,7 @@ class CamelotParser:
 
         name = str(header.iloc[1, 1]).strip()
 
-        student = ParsedStudent(
-            usn=usn,
-            name=name,
-            overall_result="PASS"
-        )
+        student = ParsedStudent(usn=usn, name=name, overall_result="PASS")
 
         student.subjects = CamelotParser.parse_subjects(marks)
 
@@ -80,9 +66,7 @@ class CamelotParser:
 
             try:
 
-                code = normalize_subject(
-                    df.iloc[row, 0]
-                )
+                code = normalize_subject(df.iloc[row, 0])
 
                 internal = int(df.iloc[row, 2])
 
@@ -90,9 +74,7 @@ class CamelotParser:
 
                 total = int(df.iloc[row, 4])
 
-                result = str(
-                    df.iloc[row, 5]
-                ).strip()
+                result = str(df.iloc[row, 5]).strip()
 
             except Exception:
                 continue
@@ -102,7 +84,7 @@ class CamelotParser:
                 internal=internal,
                 external=external,
                 total=total,
-                result=result
+                result=result,
             )
 
         return subjects

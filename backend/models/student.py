@@ -7,11 +7,7 @@ class Student(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(
-    db.Integer,
-    db.ForeignKey("users.id"),
-    nullable=True
-)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     usn = db.Column(db.String(20), unique=True)
 
@@ -23,7 +19,4 @@ class Student(db.Model):
 
     cgpa = db.Column(db.Float, default=0.0)
 
-    department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id")
-    )
+    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))

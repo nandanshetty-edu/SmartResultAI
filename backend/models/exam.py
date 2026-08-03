@@ -21,23 +21,14 @@ class Exam(db.Model):
     exam_year = db.Column(db.Integer, nullable=False)
 
     department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id"),
-        nullable=False
+        db.Integer, db.ForeignKey("departments.id"), nullable=False
     )
 
-    created_by = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     published = db.Column(db.Boolean, default=False)
 
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return f"<Exam {self.academic_year} Sem {self.semester}>"

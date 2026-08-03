@@ -1,7 +1,6 @@
 from app import app
 from services.exam_service import ExamService
 
-
 with app.app_context():
 
     exam = ExamService.get_or_create(
@@ -12,7 +11,7 @@ with app.app_context():
         exam_month="July",
         exam_year=2026,
         department_id=1,
-        created_by=1
+        created_by=1,
     )
 
     print("=" * 50)

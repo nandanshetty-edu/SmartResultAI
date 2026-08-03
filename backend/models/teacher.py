@@ -7,22 +7,12 @@ class Teacher(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    employee_id = db.Column(
-        db.String(30),
-        unique=True
-    )
+    employee_id = db.Column(db.String(30), unique=True)
 
     name = db.Column(db.String(150))
 
     designation = db.Column(db.String(100))
 
-    department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id")
-    )
+    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))

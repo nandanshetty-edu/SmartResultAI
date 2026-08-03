@@ -13,7 +13,7 @@ class ExamService:
         exam_month,
         exam_year,
         department_id,
-        created_by
+        created_by,
     ):
 
         exam = Exam.query.filter_by(
@@ -23,7 +23,7 @@ class ExamService:
             exam_type=exam_type,
             exam_month=exam_month,
             exam_year=exam_year,
-            department_id=department_id
+            department_id=department_id,
         ).first()
 
         if exam:
@@ -37,7 +37,7 @@ class ExamService:
             exam_month=exam_month,
             exam_year=exam_year,
             department_id=department_id,
-            created_by=created_by
+            created_by=created_by,
         )
 
         db.session.add(exam)

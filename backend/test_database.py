@@ -3,12 +3,9 @@ from app import app
 from services.parser.camelot_parser import CamelotParser
 from services.student_service import StudentService
 
-
 with app.app_context():
 
-    students = CamelotParser.parse(
-        "sample_data/pdf/Poornima_merged.pdf"
-    )
+    students = CamelotParser.parse("sample_data/pdf/Poornima_merged.pdf")
 
     saved = 0
 

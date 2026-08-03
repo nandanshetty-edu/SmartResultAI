@@ -7,11 +7,7 @@ class Subject(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    subject_code = db.Column(
-        db.String(20),
-        unique=True,
-        nullable=False
-    )
+    subject_code = db.Column(db.String(20), unique=True, nullable=False)
 
     subject_name = db.Column(db.String(200))
 
@@ -19,7 +15,4 @@ class Subject(db.Model):
 
     semester = db.Column(db.Integer)
 
-    department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id")
-    )
+    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))

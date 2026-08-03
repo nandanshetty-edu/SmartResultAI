@@ -17,60 +17,41 @@ def create_exam():
         "exam_month",
         "exam_year",
         "department_id",
-        "created_by"
+        "created_by",
     ]
 
     for field in required:
 
         if field not in data:
 
-            return jsonify({
-                "success": False,
-                "message": f"{field} is required"
-            }), 400
+            return jsonify({"success": False, "message": f"{field} is required"}), 400
 
     exam = ExamService.get_or_create(
-
         academic_year=data["academic_year"],
-
         semester=data["semester"],
-
         section=data.get("section"),
-
         exam_type=data["exam_type"],
-
         exam_month=data["exam_month"],
-
         exam_year=data["exam_year"],
-
         department_id=data["department_id"],
-
-        created_by=data["created_by"]
-
+        created_by=data["created_by"],
     )
 
-    return jsonify({
-
-        "success": True,
-
-        "message": "Exam ready",
-
-        "exam": {
-
-            "id": exam.id,
-
-            "academic_year": exam.academic_year,
-
-            "semester": exam.semester,
-
-            "section": exam.section,
-
-            "exam_type": exam.exam_type,
-
-            "exam_month": exam.exam_month,
-
-            "exam_year": exam.exam_year
-
-        }
-
-    }), 201
+    return (
+        jsonify(
+            {
+                "success": True,
+                "message": "Exam ready",
+                "exam": {
+                    "id": exam.id,
+                    "academic_year": exam.academic_year,
+                    "semester": exam.semester,
+                    "section": exam.section,
+                    "exam_type": exam.exam_type,
+                    "exam_month": exam.exam_month,
+                    "exam_year": exam.exam_year,
+                },
+            }
+        ),
+        201,
+    )

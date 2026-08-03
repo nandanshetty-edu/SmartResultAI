@@ -1,8 +1,6 @@
 from services.parser.camelot_parser import CamelotParser
 
-students = CamelotParser.parse(
-    "sample_data/pdf/Poornima_merged.pdf"
-)
+students = CamelotParser.parse("sample_data/pdf/Poornima_merged.pdf")
 
 print()
 
@@ -25,5 +23,5 @@ for subject in student.subjects.values():
         subject.internal,
         subject.external,
         subject.total,
-        subject.result
+        subject.result,
     )

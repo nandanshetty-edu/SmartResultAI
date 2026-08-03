@@ -5,17 +5,13 @@ from models.exam import Exam
 
 from services.result_service import ResultService
 
-
 with app.app_context():
 
     student = Student.query.first()
 
     exam = Exam.query.first()
 
-    result = ResultService.create_result(
-        student,
-        exam
-    )
+    result = ResultService.create_result(student, exam)
 
     print("=" * 50)
 

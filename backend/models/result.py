@@ -8,23 +8,13 @@ class Result(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    student_id = db.Column(
-        db.Integer,
-        db.ForeignKey("students.id"),
-        nullable=False
-    )
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
 
-    exam_id = db.Column(
-        db.Integer,
-        db.ForeignKey("exams.id"),
-        nullable=False
-    )
+    exam_id = db.Column(db.Integer, db.ForeignKey("exams.id"), nullable=False)
 
     processing_job_id = db.Column(
-    db.Integer,
-    db.ForeignKey("processing_jobs.id"),
-    nullable=True
-)
+        db.Integer, db.ForeignKey("processing_jobs.id"), nullable=True
+    )
 
     sgpa = db.Column(db.Float, default=0.0)
 
@@ -34,7 +24,4 @@ class Result(db.Model):
 
     published = db.Column(db.Boolean, default=False)
 
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

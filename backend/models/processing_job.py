@@ -10,17 +10,9 @@ class ProcessingJob(db.Model):
 
     job_code = db.Column(db.String(50), unique=True, nullable=False)
 
-    teacher_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
+    teacher_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    exam_id = db.Column(
-        db.Integer,
-        db.ForeignKey("exams.id"),
-        nullable=False
-    )
+    exam_id = db.Column(db.Integer, db.ForeignKey("exams.id"), nullable=False)
 
     pdf_path = db.Column(db.String(300))
 
@@ -28,32 +20,17 @@ class ProcessingJob(db.Model):
 
     output_excel_path = db.Column(db.String(300))
 
-    status = db.Column(
-        db.String(30),
-        default="PENDING"
-    )
+    status = db.Column(db.String(30), default="PENDING")
 
-    total_students = db.Column(
-        db.Integer,
-        default=0
-    )
+    total_students = db.Column(db.Integer, default=0)
 
-    processed_students = db.Column(
-        db.Integer,
-        default=0
-    )
+    processed_students = db.Column(db.Integer, default=0)
 
-    failed_students = db.Column(
-        db.Integer,
-        default=0
-    )
+    failed_students = db.Column(db.Integer, default=0)
 
     error_message = db.Column(db.Text)
 
-    started_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     completed_at = db.Column(db.DateTime)
 

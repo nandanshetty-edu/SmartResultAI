@@ -10,9 +10,7 @@ class FileUtils:
 
         os.makedirs(folder, exist_ok=True)
 
-        extension = os.path.splitext(
-            secure_filename(file.filename)
-        )[1]
+        extension = os.path.splitext(secure_filename(file.filename))[1]
 
         filename = f"{uuid.uuid4().hex}{extension}"
 

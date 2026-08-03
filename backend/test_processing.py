@@ -3,7 +3,6 @@ from app import app
 from models.exam import Exam
 from services.processing_service import ProcessingService
 
-
 with app.app_context():
 
     exam = Exam.query.first()
@@ -13,10 +12,7 @@ with app.app_context():
     print("Exam ID:", exam.id if exam else None)
     print("=" * 50)
 
-    summary = ProcessingService.process(
-        "sample_data/pdf/Poornima_merged.pdf",
-        exam
-    )
+    summary = ProcessingService.process("sample_data/pdf/Poornima_merged.pdf", exam)
 
     print()
     print("=" * 50)
