@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from openpyxl import load_workbook
 
@@ -39,12 +40,10 @@ class ExcelService:
                     .upper()
                 )
 
-                # Skip RESULT column
                 if code == "RESULT":
                     col += 3
                     continue
 
-                # Handle combined subject codes
                 codes = code.split("/")
 
                 for subject_code in codes:
@@ -87,7 +86,45 @@ class ExcelService:
         return column_map
 
     @staticmethod
-    def write_student_marks(sheet, row, exam, subject_map):
+    def write_summary(sheet, row, result, marks, result_columns):
+
+        grand_total = sum(
+            mark.total for mark in marks if mark.total is not None
+        )
+
+        max_marks = len(marks) * 100
+
+        percentage = (
+            round((grand_total / max_marks) * 100, 2)
+            if max_marks > 0 else 0
+        )
+
+        if "result" in result_columns:
+            sheet.cell(
+                row=row,
+                column=result_columns["result"]
+            ).value = result.overall_result
+
+        if "grand_total" in result_columns:
+            sheet.cell(
+                row=row,
+                column=result_columns["grand_total"]
+            ).value = grand_total
+
+        if "percentage" in result_columns:
+            sheet.cell(
+                row=row,
+                column=result_columns["percentage"]
+            ).value = percentage
+
+    @staticmethod
+    def write_student_marks(
+        sheet,
+        row,
+        exam,
+        subject_map,
+        result_columns
+    ):
 
         usn = sheet.cell(row=row, column=2).value
 
@@ -138,6 +175,14 @@ class ExcelService:
                 column=columns["total"]
             ).value = mark.total
 
+        ExcelService.write_summary(
+            sheet,
+            row,
+            result,
+            marks,
+            result_columns
+        )
+
         return True
 
     @staticmethod
@@ -163,6 +208,10 @@ class ExcelService:
             sheet
         )
 
+        result_columns = ExcelService.build_result_column_map(
+            sheet
+        )
+
         row = 12
 
         while True:
@@ -179,12 +228,17 @@ class ExcelService:
                 sheet,
                 row,
                 exam,
-                subject_map
+                subject_map,
+                result_columns
             )
 
             row += 1
 
-        output_path = "outputs/generated_result.xlsx"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        output_path = (
+            f"outputs/result_{timestamp}.xlsx"
+        )
 
         ExcelService.save_workbook(
             workbook,
