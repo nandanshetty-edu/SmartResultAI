@@ -44,3 +44,15 @@ class ExamService:
         db.session.commit()
 
         return exam
+
+    @staticmethod
+    def get_all():
+
+        return Exam.query.order_by(
+            Exam.id.desc()
+        ).all()
+
+    @staticmethod
+    def get_by_id(exam_id):
+
+        return Exam.query.get(exam_id)

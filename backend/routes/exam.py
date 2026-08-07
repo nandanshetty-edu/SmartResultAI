@@ -55,3 +55,23 @@ def create_exam():
         ),
         201,
     )
+@exam_bp.route("/", methods=["GET"])
+def get_exams():
+
+    exams = ExamService.get_all()
+
+    return jsonify({
+        "success": True,
+        "data": [
+            {
+                "id": exam.id,
+                "academic_year": exam.academic_year,
+                "semester": exam.semester,
+                "section": exam.section,
+                "exam_type": exam.exam_type,
+                "exam_month": exam.exam_month,
+                "exam_year": exam.exam_year,
+            }
+            for exam in exams
+        ]
+    })

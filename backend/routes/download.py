@@ -1,9 +1,7 @@
-from flask import Blueprint
-from flask import send_from_directory
+from flask import Blueprint, send_from_directory
 from pathlib import Path
 
 download_bp = Blueprint("download", __name__)
-
 
 @download_bp.route("/<path:filename>")
 def download(filename):
