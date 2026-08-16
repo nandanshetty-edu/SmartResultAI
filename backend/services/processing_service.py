@@ -11,6 +11,10 @@ from services.validation_service import ValidationService
 
 class ProcessingService:
 
+    # ============================================================
+    # UPLOAD FILES
+    # ============================================================
+
     @staticmethod
     def upload(pdf, excel):
 
@@ -29,12 +33,20 @@ class ProcessingService:
             "excel_path": excel_path
         }
 
-    @staticmethod
-    def process(pdf_path, excel_path, exam):
+    # ============================================================
+    # PROCESS RESULT
+    # ============================================================
 
-        # --------------------------
-        # Validate Uploads
-        # --------------------------
+    @staticmethod
+    def process(
+        pdf_path,
+        excel_path,
+        exam
+    ):
+
+        # --------------------------------------------------------
+        # Validate PDF + Excel
+        # --------------------------------------------------------
 
         validation = ValidationService.validate(
             pdf_path,
@@ -52,31 +64,56 @@ class ProcessingService:
 
         try:
 
-            # --------------------------
-            # Save Database
-            # --------------------------
+            # ----------------------------------------------------
+            # PROCESS EVERY STUDENT
+            # ----------------------------------------------------
 
             for parsed_student in parsed_students:
 
+                # ------------------------------------------------
+                # Find existing student by USN
+                # or create a new student
+                # ------------------------------------------------
+
                 student = StudentService.get_or_create(
-                    parsed_student
+                    parsed_student,
+                    exam
                 )
 
                 saved_students += 1
 
+                # ------------------------------------------------
+                # Create / get result
+                # ------------------------------------------------
+
                 result = ResultService.create_result(
-                    student,
-                    exam
+                    student=student,
+                    exam=exam,
+                    overall_result=(
+                        parsed_student.overall_result
+                    )
                 )
 
                 created_results += 1
 
-                for parsed_subject in parsed_student.subjects.values():
+                # ------------------------------------------------
+                # Create marks
+                # ------------------------------------------------
+
+                for parsed_subject in (
+                    parsed_student.subjects.values()
+                ):
 
                     subject = SubjectService.get_or_create(
-                        subject_code=parsed_subject.subject_code,
+                        subject_code=(
+                            parsed_subject.subject_code
+                        ),
+
                         semester=exam.semester,
-                        department_id=exam.department_id
+
+                        department_id=(
+                            exam.department_id
+                        )
                     )
 
                     MarkService.create_mark(
@@ -87,14 +124,13 @@ class ProcessingService:
 
                     created_marks += 1
 
-            # --------------------------
-            # Commit Everything
-            # --------------------------
+            # ----------------------------------------------------
+            # Commit EVERYTHING
+            # ----------------------------------------------------
 
             db.session.commit()
 
             return {
-
                 "success": True,
 
                 "students": saved_students,
@@ -102,7 +138,6 @@ class ProcessingService:
                 "results": created_results,
 
                 "marks": created_marks
-
             }
 
         except Exception as e:
@@ -110,11 +145,9 @@ class ProcessingService:
             db.session.rollback()
 
             return {
-
                 "success": False,
 
                 "errors": [
                     str(e)
                 ]
-
             }
