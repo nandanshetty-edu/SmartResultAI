@@ -13,33 +13,33 @@ class LoginForm extends StatefulWidget {
   });
 
   @override
-  State<LoginForm> createState() =>
-      _LoginFormState();
+  State<LoginForm> createState() => _LoginFormState();
 }
 
 class _LoginFormState extends State<LoginForm> {
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-  final _emailController =
-      TextEditingController();
-
-  final _passwordController =
-      TextEditingController();
+  final _loginController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool obscurePassword = true;
-
   bool rememberMe = false;
-
   bool loading = false;
+
+  // true  = Student
+  // false = Teacher
+  bool isStudent = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _loginController.dispose();
     _passwordController.dispose();
-
     super.dispose();
   }
+
+  // ============================================================
+  // LOGIN
+  // ============================================================
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) {
@@ -55,34 +55,47 @@ class _LoginFormState extends State<LoginForm> {
     });
 
     try {
-      final response =
-          await AuthService.login(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+      late final Map<String, dynamic> response;
+
+      // --------------------------------------------------------
+      // STUDENT
+      // --------------------------------------------------------
+
+      if (isStudent) {
+        response = await AuthService.loginStudent(
+          usn: _loginController.text,
+          password: _passwordController.text,
+        );
+      }
+
+      // --------------------------------------------------------
+      // TEACHER
+      // --------------------------------------------------------
+
+      else {
+        response = await AuthService.loginTeacher(
+          email: _loginController.text,
+          password: _passwordController.text,
+        );
+      }
 
       if (!mounted) return;
 
       if (widget.onLogin != null) {
-        await widget.onLogin!(
-          response,
-        );
+        await widget.onLogin!(response);
       }
     } catch (e) {
       if (!mounted) return;
 
-      final message =
-          e.toString().replaceFirst(
-                "Exception: ",
-                "",
-              );
+      final message = e.toString().replaceFirst(
+        "Exception: ",
+        "",
+      );
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          behavior:
-              SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -94,25 +107,45 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
+  // ============================================================
+  // ROLE SWITCH
+  // ============================================================
+
+  void selectRole(bool student) {
+    if (loading) return;
+
+    setState(() {
+      isStudent = student;
+
+      // Clear the field when changing role.
+      _loginController.clear();
+
+      _formKey.currentState?.reset();
+    });
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
-
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ======================================================
+          // TITLE
+          // ======================================================
+
           Text(
             "Welcome Back 👋",
-
             style: Theme.of(context)
                 .textTheme
                 .headlineSmall
                 ?.copyWith(
-                  fontWeight:
-                      FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                 ),
           ),
 
@@ -120,41 +153,101 @@ class _LoginFormState extends State<LoginForm> {
 
           Text(
             "Login to continue",
-
             style: TextStyle(
               color: Colors.grey.shade600,
             ),
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 25),
+
+          // ======================================================
+          // ROLE SELECTOR
+          // ======================================================
+
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _RoleButton(
+                    title: "Student",
+                    icon: Icons.school_outlined,
+                    selected: isStudent,
+                    onTap: () => selectRole(true),
+                  ),
+                ),
+                Expanded(
+                  child: _RoleButton(
+                    title: "Teacher",
+                    icon: Icons.person_outline,
+                    selected: !isStudent,
+                    onTap: () => selectRole(false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 25),
+
+          // ======================================================
+          // LOGIN ID
+          // ======================================================
 
           TextFormField(
-            controller:
-                _emailController,
-
-            keyboardType:
-                TextInputType.emailAddress,
-
-            textInputAction:
-                TextInputAction.next,
-
-            decoration:
-                const InputDecoration(
-              labelText: "Email",
-
+            controller: _loginController,
+            keyboardType: isStudent
+                ? TextInputType.text
+                : TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            textCapitalization: isStudent
+                ? TextCapitalization.characters
+                : TextCapitalization.none,
+            decoration: InputDecoration(
+              labelText: isStudent
+                  ? "USN"
+                  : "College Gmail",
+              hintText: isStudent
+                  ? "Enter your USN"
+                  : "Enter your college Gmail",
               prefixIcon: Icon(
-                Icons.email_outlined,
+                isStudent
+                    ? Icons.badge_outlined
+                    : Icons.email_outlined,
               ),
+              border: const OutlineInputBorder(),
             ),
-
             validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
-                return "Email is required";
+              final input = value?.trim() ?? "";
+
+              if (input.isEmpty) {
+                return isStudent
+                    ? "USN is required"
+                    : "College Gmail is required";
               }
 
-              if (!value.contains("@")) {
-                return "Enter a valid email";
+              // --------------------------------------------------
+              // Student validation
+              // --------------------------------------------------
+
+              if (isStudent) {
+                if (input.length < 3) {
+                  return "Enter a valid USN";
+                }
+
+                return null;
+              }
+
+              // --------------------------------------------------
+              // Teacher validation
+              // --------------------------------------------------
+
+              if (!input.contains("@")) {
+                return "Enter a valid college Gmail";
               }
 
               return null;
@@ -163,38 +256,32 @@ class _LoginFormState extends State<LoginForm> {
 
           const SizedBox(height: 20),
 
+          // ======================================================
+          // PASSWORD
+          // ======================================================
+
           TextFormField(
-            controller:
-                _passwordController,
-
-            obscureText:
-                obscurePassword,
-
-            textInputAction:
-                TextInputAction.done,
-
+            controller: _passwordController,
+            obscureText: obscurePassword,
+            textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) {
               login();
             },
-
-            decoration:
-                InputDecoration(
+            decoration: InputDecoration(
               labelText: "Password",
-
-              prefixIcon:
-                  const Icon(
+              prefixIcon: const Icon(
                 Icons.lock_outline,
               ),
-
-              suffixIcon:
-                  IconButton(
-                onPressed: () {
-                  setState(() {
-                    obscurePassword =
-                        !obscurePassword;
-                  });
-                },
-
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                onPressed: loading
+                    ? null
+                    : () {
+                        setState(() {
+                          obscurePassword =
+                              !obscurePassword;
+                        });
+                      },
                 icon: Icon(
                   obscurePassword
                       ? Icons.visibility
@@ -202,7 +289,6 @@ class _LoginFormState extends State<LoginForm> {
                 ),
               ),
             ),
-
             validator: (value) {
               if (value == null ||
                   value.isEmpty) {
@@ -219,64 +305,55 @@ class _LoginFormState extends State<LoginForm> {
 
           const SizedBox(height: 15),
 
+          // ======================================================
+          // REMEMBER ME
+          // ======================================================
+
           Row(
             children: [
               Checkbox(
                 value: rememberMe,
-
-                onChanged:
-                    loading
-                        ? null
-                        : (value) {
-                            setState(() {
-                              rememberMe =
-                                  value ??
-                                      false;
-                            });
-                          },
+                onChanged: loading
+                    ? null
+                    : (value) {
+                        setState(() {
+                          rememberMe =
+                              value ?? false;
+                        });
+                      },
               ),
-
-              const Text(
-                "Remember Me",
-              ),
+              const Text("Remember Me"),
             ],
           ),
 
           const SizedBox(height: 25),
 
+          // ======================================================
+          // LOGIN BUTTON
+          // ======================================================
+
           SizedBox(
             height: 55,
-
-            child:
-                ElevatedButton(
-              onPressed:
-                  loading
-                      ? null
-                      : login,
-
-              child:
-                  loading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color:
-                                Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          "LOGIN",
-
-                          style:
-                              TextStyle(
-                            fontSize: 16,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
+            child: ElevatedButton(
+              onPressed: loading ? null : login,
+              child: loading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      isStudent
+                          ? "LOGIN AS STUDENT"
+                          : "LOGIN AS TEACHER",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
 
@@ -286,13 +363,15 @@ class _LoginFormState extends State<LoginForm> {
 
           const SizedBox(height: 10),
 
+          // ======================================================
+          // COLLEGE
+          // ======================================================
+
           Center(
             child: Text(
               "MIT Kundapura",
-
               style: TextStyle(
-                color:
-                    Colors.grey.shade700,
+                color: Colors.grey.shade700,
               ),
             ),
           ),
@@ -302,16 +381,88 @@ class _LoginFormState extends State<LoginForm> {
           Center(
             child: Text(
               "Version 1.0",
-
               style: TextStyle(
-                color:
-                    Colors.grey.shade500,
-
+                color: Colors.grey.shade500,
                 fontSize: 12,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ================================================================
+// ROLE BUTTON
+// ================================================================
+
+class _RoleButton extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RoleButton({
+    required this.title,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(
+          milliseconds: 200,
+        ),
+        padding: const EdgeInsets.symmetric(
+          vertical: 13,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? Colors.white
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(
+                      alpha: 0.08,
+                    ),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected
+                  ? const Color(0xff2563EB)
+                  : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: selected
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+                color: selected
+                    ? const Color(0xff2563EB)
+                    : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

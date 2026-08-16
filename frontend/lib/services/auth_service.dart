@@ -9,33 +9,76 @@ class AuthService {
   static const FlutterSecureStorage _storage =
       FlutterSecureStorage();
 
-  /// Login using email + password.
-  ///
-  /// Returns the complete backend response.
-  static Future<Map<String, dynamic>> login({
+  // ============================================================
+  // STUDENT LOGIN
+  //
+  // USN + Password
+  // ============================================================
+
+  static Future<Map<String, dynamic>> loginStudent({
+    required String usn,
+    required String password,
+  }) async {
+    return _login(
+      data: {
+        "role": "STUDENT",
+        "usn": usn.trim().toUpperCase(),
+        "password": password,
+      },
+    );
+  }
+
+  // ============================================================
+  // TEACHER LOGIN
+  //
+  // College Gmail + Password
+  // ============================================================
+
+  static Future<Map<String, dynamic>> loginTeacher({
     required String email,
     required String password,
+  }) async {
+    return _login(
+      data: {
+        "role": "TEACHER",
+        "email": email.trim().toLowerCase(),
+        "password": password,
+      },
+    );
+  }
+
+  // ============================================================
+  // COMMON LOGIN REQUEST
+  // ============================================================
+
+  static Future<Map<String, dynamic>> _login({
+    required Map<String, dynamic> data,
   }) async {
     try {
       final response = await ApiClient.dio.post(
         "/auth/login",
-        data: {
-          "email": email.trim(),
-          "password": password,
-        },
+        data: data,
       );
 
-      final data = Map<String, dynamic>.from(
+      final responseData = Map<String, dynamic>.from(
         response.data,
       );
 
-      if (data["success"] != true) {
+      // --------------------------------------------------------
+      // Backend says login failed
+      // --------------------------------------------------------
+
+      if (responseData["success"] != true) {
         throw Exception(
-          data["message"] ?? "Login failed",
+          responseData["message"] ?? "Login failed",
         );
       }
 
-      final token = data["token"];
+      // --------------------------------------------------------
+      // Get JWT
+      // --------------------------------------------------------
+
+      final token = responseData["token"];
 
       if (token == null || token.toString().isEmpty) {
         throw Exception(
@@ -43,87 +86,173 @@ class AuthService {
         );
       }
 
-      // Save JWT securely.
+      // --------------------------------------------------------
+      // Save JWT securely
+      // --------------------------------------------------------
+
       await _storage.write(
         key: "access_token",
         value: token.toString(),
       );
 
-      // Save role for quick local routing.
-      final user = data["user"];
+      // --------------------------------------------------------
+      // Get user
+      // --------------------------------------------------------
 
-      if (user is Map && user["role"] != null) {
-        await _storage.write(
-          key: "user_role",
-          value: user["role"].toString(),
-        );
+      final user = responseData["user"];
+
+      if (user is Map) {
+        // Save role
+        if (user["role"] != null) {
+          await _storage.write(
+            key: "user_role",
+            value: user["role"].toString(),
+          );
+        }
+
+        // Save email if available
+        if (user["email"] != null) {
+          await _storage.write(
+            key: "user_email",
+            value: user["email"].toString(),
+          );
+        }
+
+        // Save student USN if available
+        final student = user["student"];
+
+        if (student is Map &&
+            student["usn"] != null) {
+          await _storage.write(
+            key: "user_usn",
+            value: student["usn"].toString(),
+          );
+        }
+
+        // Save teacher employee ID if available
+        final teacher = user["teacher"];
+
+        if (teacher is Map &&
+            teacher["employee_id"] != null) {
+          await _storage.write(
+            key: "employee_id",
+            value: teacher["employee_id"].toString(),
+          );
+        }
       }
 
-      // Save email.
-      if (user is Map && user["email"] != null) {
-        await _storage.write(
-          key: "user_email",
-          value: user["email"].toString(),
-        );
-      }
+      return responseData;
+    }
 
-      return data;
-    } on DioException catch (e) {
-      String message = "Unable to connect to server.";
+    // ==========================================================
+    // DIO ERROR
+    // ==========================================================
+
+    on DioException catch (e) {
+      String message =
+          "Unable to connect to server.";
 
       if (e.response != null) {
         final responseData = e.response!.data;
 
         if (responseData is Map &&
             responseData["message"] != null) {
-          message = responseData["message"].toString();
+          message =
+              responseData["message"].toString();
         } else if (responseData is Map &&
             responseData["msg"] != null) {
-          message = responseData["msg"].toString();
+          message =
+              responseData["msg"].toString();
         } else if (e.response!.statusMessage != null) {
-          message = e.response!.statusMessage!;
+          message =
+              e.response!.statusMessage!;
         }
       } else if (e.message != null) {
         message = e.message!;
       }
 
       throw Exception(message);
-    } catch (e) {
+    }
+
+    // ==========================================================
+    // OTHER ERROR
+    // ==========================================================
+
+    catch (e) {
       throw Exception(
-        e.toString().replaceFirst("Exception: ", ""),
+        e.toString().replaceFirst(
+          "Exception: ",
+          "",
+        ),
       );
     }
   }
 
-  /// Get the stored JWT.
+  // ============================================================
+  // GET JWT
+  // ============================================================
+
   static Future<String?> getToken() async {
     return _storage.read(
       key: "access_token",
     );
   }
 
-  /// Get the stored role.
+  // ============================================================
+  // GET ROLE
+  // ============================================================
+
   static Future<String?> getRole() async {
     return _storage.read(
       key: "user_role",
     );
   }
 
-  /// Get the stored email.
+  // ============================================================
+  // GET EMAIL
+  // ============================================================
+
   static Future<String?> getEmail() async {
     return _storage.read(
       key: "user_email",
     );
   }
 
-  /// Check whether a token exists.
+  // ============================================================
+  // GET STUDENT USN
+  // ============================================================
+
+  static Future<String?> getUsn() async {
+    return _storage.read(
+      key: "user_usn",
+    );
+  }
+
+  // ============================================================
+  // GET TEACHER EMPLOYEE ID
+  // ============================================================
+
+  static Future<String?> getEmployeeId() async {
+    return _storage.read(
+      key: "employee_id",
+    );
+  }
+
+  // ============================================================
+  // CHECK LOGIN
+  // ============================================================
+
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
 
-    return token != null && token.isNotEmpty;
+    return token != null &&
+        token.isNotEmpty;
   }
 
-  /// Logout.
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
   static Future<void> logout() async {
     await _storage.delete(
       key: "access_token",
@@ -135,6 +264,14 @@ class AuthService {
 
     await _storage.delete(
       key: "user_email",
+    );
+
+    await _storage.delete(
+      key: "user_usn",
+    );
+
+    await _storage.delete(
+      key: "employee_id",
     );
   }
 }

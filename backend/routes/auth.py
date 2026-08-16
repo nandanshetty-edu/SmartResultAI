@@ -3,13 +3,14 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from database import db
 
-from models.user import User
-
 from services.auth_service import AuthService
 from utils.jwt_utils import generate_token
 
 
-auth_bp = Blueprint("auth", __name__)
+auth_bp = Blueprint(
+    "auth",
+    __name__
+)
 
 
 # ============================================================
@@ -19,7 +20,9 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/register", methods=["POST"])
 def register():
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     email = data.get("email")
     password = data.get("password")
@@ -53,24 +56,44 @@ def register():
 
             role=role,
 
-            # Teacher fields
-            employee_id=data.get("employee_id"),
-            designation=data.get("designation"),
+            # Teacher
+            employee_id=data.get(
+                "employee_id"
+            ),
+
+            designation=data.get(
+                "designation"
+            ),
 
             # Common
-            name=data.get("name"),
-            department_id=data.get("department_id"),
+            name=data.get(
+                "name"
+            ),
 
-            # Student fields
-            usn=data.get("usn"),
-            semester=data.get("semester"),
-            section=data.get("section"),
+            department_id=data.get(
+                "department_id"
+            ),
+
+            # Student
+            usn=data.get(
+                "usn"
+            ),
+
+            semester=data.get(
+                "semester"
+            ),
+
+            section=data.get(
+                "section"
+            ),
         )
 
         return jsonify({
             "success": True,
             "message": "User created successfully",
-            "user": AuthService.serialize_user(user)
+            "user": AuthService.serialize_user(
+                user
+            )
         }), 201
 
     except ValueError as e:
@@ -95,29 +118,101 @@ def register():
 
 # ============================================================
 # LOGIN
+#
+# TEACHER:
+# {
+#     "role": "TEACHER",
+#     "email": "...",
+#     "password": "..."
+# }
+#
+# STUDENT:
+# {
+#     "role": "STUDENT",
+#     "usn": "...",
+#     "password": "..."
+# }
 # ============================================================
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
-    email = data.get("email")
+    role = data.get("role")
+
     password = data.get("password")
 
-    if not email or not password:
-
+    if not role:
         return jsonify({
             "success": False,
-            "message": "Email and password are required"
+            "message": "Role is required"
         }), 400
+
+    if not password:
+        return jsonify({
+            "success": False,
+            "message": "Password is required"
+        }), 400
+
+    role = role.strip().upper()
 
     try:
 
-        user = AuthService.authenticate(
-            email=email,
-            password=password
-        )
+        # ========================================================
+        # TEACHER LOGIN
+        # ========================================================
+
+        if role == "TEACHER":
+
+            email = data.get("email")
+
+            if not email:
+                return jsonify({
+                    "success": False,
+                    "message": "College Gmail is required"
+                }), 400
+
+            user = AuthService.authenticate_teacher(
+                email=email,
+                password=password
+            )
+
+        # ========================================================
+        # STUDENT LOGIN
+        # ========================================================
+
+        elif role == "STUDENT":
+
+            usn = data.get("usn")
+
+            if not usn:
+                return jsonify({
+                    "success": False,
+                    "message": "USN is required"
+                }), 400
+
+            user = AuthService.authenticate_student(
+                usn=usn,
+                password=password
+            )
+
+        # ========================================================
+        # INVALID ROLE
+        # ========================================================
+
+        else:
+
+            return jsonify({
+                "success": False,
+                "message": "Invalid login role"
+            }), 400
+
+        # ========================================================
+        # GENERATE JWT
+        # ========================================================
 
         token = generate_token(user)
 
@@ -125,7 +220,9 @@ def login():
             "success": True,
             "message": "Login successful",
             "token": token,
-            "user": AuthService.serialize_user(user)
+            "user": AuthService.serialize_user(
+                user
+            )
         }), 200
 
     except ValueError as e:
@@ -176,7 +273,9 @@ def get_current_user():
 
         return jsonify({
             "success": True,
-            "user": AuthService.serialize_user(user)
+            "user": AuthService.serialize_user(
+                user
+            )
         }), 200
 
     except Exception as e:

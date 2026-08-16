@@ -9,15 +9,46 @@ from utils.password_utils import hash_password, verify_password
 
 class AuthService:
 
+    # ============================================================
+    # GET USER BY EMAIL
+    # ============================================================
+
     @staticmethod
     def get_user_by_email(email):
+
+        if not email:
+            return None
+
         return User.query.filter_by(
             email=email.strip().lower()
         ).first()
 
+    # ============================================================
+    # GET USER BY ID
+    # ============================================================
+
     @staticmethod
     def get_user_by_id(user_id):
+
         return User.query.get(user_id)
+
+    # ============================================================
+    # GET STUDENT BY USN
+    # ============================================================
+
+    @staticmethod
+    def get_student_by_usn(usn):
+
+        if not usn:
+            return None
+
+        return Student.query.filter_by(
+            usn=usn.strip().upper()
+        ).first()
+
+    # ============================================================
+    # CREATE USER
+    # ============================================================
 
     @staticmethod
     def create_user(
@@ -32,12 +63,9 @@ class AuthService:
         semester=None,
         section=None,
     ):
+
         email = email.strip().lower()
         role = role.strip().upper()
-
-        # --------------------------------------------------
-        # Validate role
-        # --------------------------------------------------
 
         allowed_roles = {
             "ADMIN",
@@ -50,18 +78,20 @@ class AuthService:
                 "Invalid role. Allowed roles: ADMIN, TEACHER, STUDENT"
             )
 
-        # --------------------------------------------------
-        # Check duplicate email
-        # --------------------------------------------------
+        # --------------------------------------------------------
+        # Duplicate email
+        # --------------------------------------------------------
 
         existing_user = AuthService.get_user_by_email(email)
 
         if existing_user:
-            raise ValueError("Email already exists")
+            raise ValueError(
+                "Email already exists"
+            )
 
-        # --------------------------------------------------
+        # --------------------------------------------------------
         # Create User
-        # --------------------------------------------------
+        # --------------------------------------------------------
 
         user = User(
             email=email,
@@ -72,12 +102,11 @@ class AuthService:
 
         db.session.add(user)
 
-        # Flush gives us user.id before commit
         db.session.flush()
 
-        # --------------------------------------------------
-        # Teacher Profile
-        # --------------------------------------------------
+        # --------------------------------------------------------
+        # Teacher
+        # --------------------------------------------------------
 
         if role == "TEACHER":
 
@@ -110,9 +139,9 @@ class AuthService:
 
             db.session.add(teacher)
 
-        # --------------------------------------------------
-        # Student Profile
-        # --------------------------------------------------
+        # --------------------------------------------------------
+        # Student
+        # --------------------------------------------------------
 
         elif role == "STUDENT":
 
@@ -125,6 +154,8 @@ class AuthService:
                 raise ValueError(
                     "name is required for student"
                 )
+
+            usn = usn.strip().upper()
 
             existing_student = Student.query.filter_by(
                 usn=usn
@@ -146,39 +177,121 @@ class AuthService:
 
             db.session.add(student)
 
-        # --------------------------------------------------
-        # Commit
-        # --------------------------------------------------
-
         db.session.commit()
 
         return user
 
+    # ============================================================
+    # AUTHENTICATE TEACHER
+    #
+    # Teacher login:
+    # College Gmail + password
+    # ============================================================
+
     @staticmethod
-    def authenticate(email, password):
+    def authenticate_teacher(email, password):
+
+        if not email or not password:
+            raise ValueError(
+                "College Gmail and password are required"
+            )
 
         user = AuthService.get_user_by_email(email)
 
         if user is None:
-            raise ValueError("Invalid email or password")
+            raise ValueError(
+                "Invalid college Gmail or password"
+            )
+
+        if user.role != "TEACHER":
+            raise ValueError(
+                "This account is not registered as a teacher"
+            )
 
         if not user.is_active:
-            raise ValueError("Account is inactive")
+            raise ValueError(
+                "Teacher account is inactive"
+            )
 
         if not verify_password(
             password,
             user.password
         ):
-            raise ValueError("Invalid email or password")
+            raise ValueError(
+                "Invalid college Gmail or password"
+            )
 
         return user
+
+    # ============================================================
+    # AUTHENTICATE STUDENT
+    #
+    # Student login:
+    # USN + password
+    # ============================================================
+
+    @staticmethod
+    def authenticate_student(usn, password):
+
+        if not usn or not password:
+            raise ValueError(
+                "USN and password are required"
+            )
+
+        usn = usn.strip().upper()
+
+        student = AuthService.get_student_by_usn(usn)
+
+        if student is None:
+            raise ValueError(
+                "Invalid USN or password"
+            )
+
+        # Student must be linked to a User account.
+        if student.user_id is None:
+            raise ValueError(
+                "Student account has not been activated yet"
+            )
+
+        user = AuthService.get_user_by_id(
+            student.user_id
+        )
+
+        if user is None:
+            raise ValueError(
+                "Student account not found"
+            )
+
+        if user.role != "STUDENT":
+            raise ValueError(
+                "This account is not registered as a student"
+            )
+
+        if not user.is_active:
+            raise ValueError(
+                "Student account is inactive"
+            )
+
+        if not verify_password(
+            password,
+            user.password
+        ):
+            raise ValueError(
+                "Invalid USN or password"
+            )
+
+        return user
+
+    # ============================================================
+    # PROFILE
+    # ============================================================
 
     @staticmethod
     def get_profile(user):
 
-        # --------------------------------------------------
+        # --------------------------------------------------------
         # Teacher
-        # --------------------------------------------------
+        # --------------------------------------------------------
 
         if user.role == "TEACHER":
 
@@ -197,9 +310,9 @@ class AuthService:
                 "department_id": teacher.department_id,
             }
 
-        # --------------------------------------------------
+        # --------------------------------------------------------
         # Student
-        # --------------------------------------------------
+        # --------------------------------------------------------
 
         if user.role == "STUDENT":
 
@@ -220,14 +333,15 @@ class AuthService:
                 "department_id": student.department_id,
             }
 
-        # --------------------------------------------------
+        # --------------------------------------------------------
         # Admin
-        # --------------------------------------------------
-
-        if user.role == "ADMIN":
-            return None
+        # --------------------------------------------------------
 
         return None
+
+    # ============================================================
+    # SERIALIZE USER
+    # ============================================================
 
     @staticmethod
     def serialize_user(user):

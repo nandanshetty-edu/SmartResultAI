@@ -12,6 +12,7 @@ from routes.processing import processing_bp
 from routes.exam import exam_bp
 from routes.download import download_bp
 from routes.student import student_bp
+from routes.result import result_bp
 
 
 app = Flask(__name__)
@@ -20,7 +21,32 @@ app.config.from_object(Config)
 
 jwt = JWTManager(app)
 
-CORS(app)
+
+# ============================================================
+# CORS
+# ============================================================
+
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": "*"
+        }
+    },
+    allow_headers=[
+        "Content-Type",
+        "Authorization"
+    ],
+    methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS"
+    ]
+)
+
 
 db.init_app(app)
 
@@ -52,6 +78,11 @@ app.register_blueprint(
 app.register_blueprint(
     student_bp,
     url_prefix="/api/student"
+)
+
+app.register_blueprint(
+    result_bp,
+    url_prefix="/api/results"
 )
 
 
