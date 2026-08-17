@@ -64,6 +64,21 @@ class AuthService:
         section=None,
     ):
 
+        if not email:
+            raise ValueError(
+                "Email is required"
+            )
+
+        if not password:
+            raise ValueError(
+                "Password is required"
+            )
+
+        if not role:
+            raise ValueError(
+                "Role is required"
+            )
+
         email = email.strip().lower()
         role = role.strip().upper()
 
@@ -82,7 +97,9 @@ class AuthService:
         # Duplicate email
         # --------------------------------------------------------
 
-        existing_user = AuthService.get_user_by_email(email)
+        existing_user = AuthService.get_user_by_email(
+            email
+        )
 
         if existing_user:
             raise ValueError(
@@ -196,7 +213,9 @@ class AuthService:
                 "College Gmail and password are required"
             )
 
-        user = AuthService.get_user_by_email(email)
+        user = AuthService.get_user_by_email(
+            email
+        )
 
         if user is None:
             raise ValueError(
@@ -240,14 +259,19 @@ class AuthService:
 
         usn = usn.strip().upper()
 
-        student = AuthService.get_student_by_usn(usn)
+        student = AuthService.get_student_by_usn(
+            usn
+        )
 
         if student is None:
             raise ValueError(
                 "Invalid USN or password"
             )
 
-        # Student must be linked to a User account.
+        # --------------------------------------------------------
+        # Imported students may not have a User account yet.
+        # --------------------------------------------------------
+
         if student.user_id is None:
             raise ValueError(
                 "Student account has not been activated yet"
@@ -279,6 +303,128 @@ class AuthService:
             raise ValueError(
                 "Invalid USN or password"
             )
+
+        return user
+
+    # ============================================================
+    # ACTIVATE IMPORTED STUDENT
+    #
+    # Imported students from PDF/Excel initially have:
+    #
+    #     student.user_id = None
+    #
+    # This method creates a User account and links that
+    # existing Student record to the User.
+    #
+    # Student login remains:
+    #
+    #     USN + password
+    #
+    # The internal email is NOT used for student login.
+    # ============================================================
+
+    @staticmethod
+    def activate_student(usn, password):
+
+        # --------------------------------------------------------
+        # Validate input
+        # --------------------------------------------------------
+
+        if not usn or not password:
+            raise ValueError(
+                "USN and password are required"
+            )
+
+        if len(password) < 6:
+            raise ValueError(
+                "Password must be at least 6 characters"
+            )
+
+        usn = usn.strip().upper()
+
+        # --------------------------------------------------------
+        # Find existing imported student
+        # --------------------------------------------------------
+
+        student = AuthService.get_student_by_usn(
+            usn
+        )
+
+        if student is None:
+            raise ValueError(
+                "Student with this USN does not exist"
+            )
+
+        # --------------------------------------------------------
+        # Check if already activated
+        # --------------------------------------------------------
+
+        if student.user_id is not None:
+
+            existing_user = AuthService.get_user_by_id(
+                student.user_id
+            )
+
+            if existing_user is not None:
+                raise ValueError(
+                    "Student account is already activated"
+                )
+
+            raise ValueError(
+                "Student account linkage is invalid"
+            )
+
+        # --------------------------------------------------------
+        # Create internal unique email
+        #
+        # Students DO NOT log in using this email.
+        #
+        # Login remains:
+        #
+        #     USN + password
+        # --------------------------------------------------------
+
+        internal_email = (
+            f"student.{usn.lower()}@smartresult.local"
+        )
+
+        existing_user = AuthService.get_user_by_email(
+            internal_email
+        )
+
+        if existing_user is not None:
+            raise ValueError(
+                "Student account already exists"
+            )
+
+        # --------------------------------------------------------
+        # Create User
+        # --------------------------------------------------------
+
+        user = User(
+            email=internal_email,
+
+            password=hash_password(
+                password
+            ),
+
+            role="STUDENT",
+
+            is_active=True,
+        )
+
+        db.session.add(user)
+
+        # Get generated user.id
+        db.session.flush()
+
+        # --------------------------------------------------------
+        # Link existing Student → User
+        # --------------------------------------------------------
+
+        student.user_id = user.id
+
+        db.session.flush()
 
         return user
 
@@ -353,12 +499,16 @@ class AuthService:
             "is_active": user.is_active,
         }
 
-        profile = AuthService.get_profile(user)
+        profile = AuthService.get_profile(
+            user
+        )
 
         if user.role == "TEACHER":
+
             response["teacher"] = profile
 
         elif user.role == "STUDENT":
+
             response["student"] = profile
 
         return response

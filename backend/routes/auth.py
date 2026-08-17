@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    jwt_required,
+    get_jwt_identity,
+    get_jwt,
+)
 
 from database import db
 
@@ -49,11 +53,8 @@ def register():
     try:
 
         user = AuthService.create_user(
-
             email=email,
-
             password=password,
-
             role=role,
 
             # Teacher
@@ -117,6 +118,118 @@ def register():
 
 
 # ============================================================
+# ACTIVATE IMPORTED STUDENT
+#
+# Teacher only.
+#
+# Request:
+#
+# {
+#     "usn": "4MK25CS049",
+#     "password": "Student@123"
+# }
+#
+# Student subsequently logs in using:
+#
+#     USN + password
+# ============================================================
+
+@auth_bp.route(
+    "/student/activate",
+    methods=["POST"]
+)
+@jwt_required()
+def activate_student():
+
+    # --------------------------------------------------------
+    # Verify logged-in user is a teacher
+    # --------------------------------------------------------
+
+    claims = get_jwt()
+
+    role = (
+        claims.get("role") or ""
+    ).strip().upper()
+
+    if role != "TEACHER":
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Only teachers can activate "
+                "student accounts"
+            )
+        }), 403
+
+    # --------------------------------------------------------
+    # Request body
+    # --------------------------------------------------------
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    usn = data.get("usn")
+    password = data.get("password")
+
+    if not usn:
+
+        return jsonify({
+            "success": False,
+            "message": "USN is required"
+        }), 400
+
+    if not password:
+
+        return jsonify({
+            "success": False,
+            "message": "Password is required"
+        }), 400
+
+    # --------------------------------------------------------
+    # Activate student
+    # --------------------------------------------------------
+
+    try:
+
+        user = AuthService.activate_student(
+            usn=usn,
+            password=password
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": (
+                "Student account activated successfully"
+            ),
+            "user": AuthService.serialize_user(
+                user
+            )
+        }), 201
+
+    except ValueError as e:
+
+        db.session.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 400
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to activate student account",
+            "error": str(e)
+        }), 500
+
+
+# ============================================================
 # LOGIN
 #
 # TEACHER:
@@ -142,7 +255,6 @@ def login():
     ) or {}
 
     role = data.get("role")
-
     password = data.get("password")
 
     if not role:

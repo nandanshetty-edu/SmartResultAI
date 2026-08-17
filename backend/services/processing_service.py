@@ -7,6 +7,7 @@ from services.result_service import ResultService
 from services.subject_service import SubjectService
 from services.mark_service import MarkService
 from services.validation_service import ValidationService
+from services.gpa_service import GPAService
 
 
 class ProcessingService:
@@ -64,15 +65,14 @@ class ProcessingService:
 
         try:
 
-            # ----------------------------------------------------
+            # ====================================================
             # PROCESS EVERY STUDENT
-            # ----------------------------------------------------
+            # ====================================================
 
             for parsed_student in parsed_students:
 
                 # ------------------------------------------------
-                # Find existing student by USN
-                # or create a new student
+                # STUDENT
                 # ------------------------------------------------
 
                 student = StudentService.get_or_create(
@@ -83,7 +83,7 @@ class ProcessingService:
                 saved_students += 1
 
                 # ------------------------------------------------
-                # Create / get result
+                # RESULT
                 # ------------------------------------------------
 
                 result = ResultService.create_result(
@@ -97,7 +97,7 @@ class ProcessingService:
                 created_results += 1
 
                 # ------------------------------------------------
-                # Create marks
+                # MARKS
                 # ------------------------------------------------
 
                 for parsed_subject in (
@@ -108,9 +108,7 @@ class ProcessingService:
                         subject_code=(
                             parsed_subject.subject_code
                         ),
-
                         semester=exam.semester,
-
                         department_id=(
                             exam.department_id
                         )
@@ -124,29 +122,63 @@ class ProcessingService:
 
                     created_marks += 1
 
-            # ----------------------------------------------------
-            # Commit EVERYTHING
-            # ----------------------------------------------------
+                # ------------------------------------------------
+                # CALCULATE CURRENT SGPA
+                #
+                # All marks for this result have now been
+                # inserted/flushed.
+                # ------------------------------------------------
+
+                result.sgpa = (
+                    GPAService.calculate_sgpa(
+                        result
+                    )
+                )
+
+                # ------------------------------------------------
+                # Flush so the current result is visible to the
+                # CGPA query within this transaction.
+                # ------------------------------------------------
+
+                db.session.flush()
+
+                # ------------------------------------------------
+                # Calculate cumulative CGPA
+                # ------------------------------------------------
+
+                result.cgpa = (
+                    GPAService.calculate_cgpa(
+                        student
+                    )
+                )
+
+                student.cgpa = result.cgpa
+
+                db.session.flush()
+
+            # ====================================================
+            # COMMIT ENTIRE PROCESSING JOB ONCE
+            # ====================================================
 
             db.session.commit()
 
             return {
                 "success": True,
-
                 "students": saved_students,
-
                 "results": created_results,
-
                 "marks": created_marks
             }
 
         except Exception as e:
 
+            # ====================================================
+            # ROLLBACK EVERYTHING
+            # ====================================================
+
             db.session.rollback()
 
             return {
                 "success": False,
-
                 "errors": [
                     str(e)
                 ]
